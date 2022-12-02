@@ -3,7 +3,7 @@
 
 int main() {
 	Logger::openStream("Log.log");
-	Logger::Log("Log.log", "Hello", true);
+	Logger::Log("Log.log", "Bye");
 	Logger::closeStream("Log.log");
 	return 0;
 }

@@ -1,10 +1,14 @@
 #pragma once
 #include "Logger.h"
 
+bool Logger::streamExists(const std::string& name) {
+	return std::find(streamNames.begin(), streamNames.end(), name) != streamNames.end();
+}
+
 bool Logger::openStream(const std::string& name, const std::ios::openmode mode) {
 
-	std::ofstream* stream = new std::ofstream(name, mode);
-	if (stream->good()) { 
+	LogStreamPtr stream = std::make_shared<LogStream>(name, mode);
+	if (stream->good() && streamNames.insert(name).second) {
 		logStreams[name] = stream;
 		return true; 
 	}
@@ -14,56 +18,33 @@ bool Logger::openStream(const std::string& name, const std::ios::openmode mode) 
 
 bool Logger::closeStream(const std::string& name) {
 
-	for (const std::string& streamName : getStreamNames()) {
+	// Check if stream exists
+	if (!streamExists(name)) { return false; }
 
-		if (name == streamName) {
+	// Close and delete stream
+	logStreams[name]->close();
+	logStreams.erase(name);
 
-			LogStream const stream = logStreams[streamName];
-
-			stream->close();
-
-			delete stream;
-
-			logStreams.erase(streamName);
-
-			return true;
-		}
-	}
-
-	return false;
+	return true;
 
 }
 
-const StreamNames Logger::getStreamNames() {
-
-	StreamNames streamNames;
-
-	for (const auto& [streamName, dummy] : logStreams) { streamNames.insert(streamName); }
-
-	return streamNames;
-}
-
-void Logger::Log(const std::string& streamName, const std::string& message, const bool addNewLine, const bool checkIfStreamExists) {
+void Logger::Log(const std::string& streamName, const std::string& message, const bool checkIfStreamExists) {
 
 	// Check if stream exists before writing
 	if (checkIfStreamExists) {
 
-		const StreamNames streamNames = getStreamNames();
-
-		bool exists = std::find(streamNames.begin(), streamNames.end(), streamName) != streamNames.end();
-
-		if (!exists) { return; }
-
+		if (!streamExists(streamName)) { return; }
 	}
 
 	*logStreams[streamName] << message;
 
-	if (addNewLine) { *logStreams[streamName] << "\n"; }
+}
 
+void Logger::LogLine(const std::string& streamName, const std::string& message, const bool checkIfStreamExists) {
+	Log(streamName, message + "\n", checkIfStreamExists);
 }
 
 void Logger::LogToGroup(const StreamNames& streamNames, const std::string& message) {
-
-	for (const auto& name : streamNames) { Log(name, message); }
-
+	for (const std::string& name : streamNames) { Log(name, message); }
 }
