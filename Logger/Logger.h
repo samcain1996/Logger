@@ -2,6 +2,7 @@
 #include <set>
 #include <string>
 #include <fstream>
+#include <optional>
 #include <algorithm>
 #include <unordered_map>
 
@@ -10,6 +11,23 @@ using LogStreamPtr = std::shared_ptr<std::ofstream>;
 
 using StreamNames = std::set<std::string>;
 using NameToStreamMap = std::unordered_map<std::string, LogStreamPtr>;
+using NameStreamPair = std::pair < std::string, LogStreamPtr>;
+
+struct Loggette {
+
+	Loggette() = default;
+	Loggette(const std::string& name, const LogStreamPtr const logStreamPtr) : 
+		name(name), streamPtr(logStreamPtr) {}
+	Loggette(const NameStreamPair& pair) : Loggette(pair.first, pair.second) {}
+
+	const std::string name = "ERROR";
+	LogStreamPtr streamPtr = nullptr;
+
+	void Write(const std::string& message) { *streamPtr << message; }
+	void WriteLine(const std::string& message) { Write(message + "\n"); }
+};
+
+using NullableLoggette = std::optional<Loggette>;
 
 class Logger {
 
@@ -22,7 +40,11 @@ public:
 
 	static bool streamExists(const std::string& name);
 
-	static bool openStream(const std::string& name, const std::ios::openmode mode = std::ios::out);
+	static NullableLoggette getLog(const std::string& name);
+	static NullableLoggette openStream(const std::string& name, 
+		const std::ios::openmode mode = std::ios::out | std::ios::app);
+	static NullableLoggette newStream(const std::string& name, 
+		const std::ios::openmode mode = std::ios::out);
 	static bool closeStream(const std::string& name);
 
 	static void Log(const std::string& streamName, const std::string& message,

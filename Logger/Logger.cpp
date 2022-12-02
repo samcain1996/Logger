@@ -1,19 +1,31 @@
 #pragma once
 #include "Logger.h"
 
+NullableLoggette Logger::getLog(const std::string& name) {
+	if (!streamExists(name)) { return std::nullopt; }
+	return Loggette(name, logStreams[name]);
+}
+
 bool Logger::streamExists(const std::string& name) {
 	return std::find(streamNames.begin(), streamNames.end(), name) != streamNames.end();
 }
 
-bool Logger::openStream(const std::string& name, const std::ios::openmode mode) {
+NullableLoggette Logger::openStream(const std::string& name, const std::ios::openmode mode) {
+
+	if (streamExists(name)) { return std::nullopt; }
 
 	LogStreamPtr stream = std::make_shared<LogStream>(name, mode);
+	Loggette loggette(name, stream);
+
 	if (stream->good() && streamNames.insert(name).second) {
 		logStreams[name] = stream;
-		return true; 
 	}
 
-	return false;
+	return loggette;
+}
+
+NullableLoggette Logger::newStream(const std::string& name, const std::ios::openmode mode) {
+	return openStream(name, mode);
 }
 
 bool Logger::closeStream(const std::string& name) {
@@ -33,7 +45,6 @@ void Logger::Log(const std::string& streamName, const std::string& message, cons
 
 	// Check if stream exists before writing
 	if (checkIfStreamExists) {
-
 		if (!streamExists(streamName)) { return; }
 	}
 
